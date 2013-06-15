@@ -1,5 +1,8 @@
 Revision history for Perl extension App::plmetrics
 
+0.05    Sun Jun 16 00:33:50 JST 2013
+        - added the test for command executing
+
 0.04    Sat Jun 15 23:42:48 JST 2013
         - fixed depnedency
 
