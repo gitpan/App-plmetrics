@@ -32,6 +32,7 @@ my $builder = Module::Build->new(
         'perl' => '5.008001',
         'strict' => 0,
         'warnings' => 0,
+        'Docopt' => 0,
         'Module::Path' => 0,
         'Perl::Metrics::Lite' => 0,
         'Text::ASCIITable' => 0,
