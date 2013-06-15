@@ -17,7 +17,7 @@ name: App-plmetrics
 provides:
   App::plmetrics:
     file: lib/App/plmetrics.pm
-    version: 0.01
+    version: 0.02
 requires:
   Module::Path: 0
   Perl::Metrics::Lite: 0
@@ -29,4 +29,4 @@ requires:
 resources:
   license: http://dev.perl.org/licenses/
   repository: http://github.com/bayashi/App-plmetrics
-version: 0.01
+version: 0.02

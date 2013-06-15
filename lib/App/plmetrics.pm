@@ -6,7 +6,7 @@ use Perl::Metrics::Lite;
 use Statistics::Swoop;
 use Text::ASCIITable;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
     my ($class, $opt) = @_;
@@ -88,7 +88,7 @@ sub _stats_module {
         my $t = Text::ASCIITable->new;
         $t->setCols($self->_header);
         $t->addRow( 'cc', $self->_row($metrics->{$pl}{cc}) );
-        $t->addRow( 'lines', $self->_row($metrics->{$pl}{cc}) );
+        $t->addRow( 'lines', $self->_row($metrics->{$pl}{lines}) );
         print $t. "\n";
     }
 }
