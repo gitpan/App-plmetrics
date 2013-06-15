@@ -38,7 +38,7 @@ plmetrics - show the Perl metrics
 
     $ plmetrics --module Some::Module
     $ plmetrics --file ./path/to/lib/Some/Module.pm
-    $ plmetrics --directory ./path/to/lib
+    $ plmetrics --dir ./path/to/lib
     $ plmetrics --git git://example.com/Some-Module.git
     $ plmetrics --tar http://example.com/Some-Module-0.01.tar.gz
 

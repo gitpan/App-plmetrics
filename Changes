@@ -1,5 +1,10 @@
 Revision history for Perl extension App::plmetrics
 
+0.03    Sat Jun 15 21:24:49 JST 2013
+        - tiny fix for a message
+        - fixed pod
+        - test enhancements
+
 0.02    Sat Jun 15 14:07:54 JST 2013
         - fixed bug
 

@@ -6,7 +6,7 @@ use Perl::Metrics::Lite;
 use Statistics::Swoop;
 use Text::ASCIITable;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new {
     my ($class, $opt) = @_;
@@ -39,6 +39,9 @@ sub _stats {
     }
     elsif ($result_opt =~ m!^lines?$!i) {
         $self->_stats_lines($metrics);
+    }
+    else {
+        print STDERR "wrong option: --result $result_opt\nsee the --help\n";
     }
 }
 
@@ -152,7 +155,12 @@ sub _target_module {
 
     my $path = Module::Path::module_path($self->opt->{'--module'});
     my @targets;
-    push @targets, $path if $path;
+    if ($path) {
+        push @targets, $path;
+    }
+    else {
+        print STDERR "No such module: ". $self->opt->{'--module'}. "\n";
+    }
     return(\@targets, '');
 }
 

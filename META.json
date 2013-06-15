@@ -40,7 +40,7 @@
    "provides" : {
       "App::plmetrics" : {
          "file" : "lib/App/plmetrics.pm",
-         "version" : "0.02"
+         "version" : "0.03"
       }
    },
    "release_status" : "stable",
@@ -52,5 +52,5 @@
          "url" : "http://github.com/bayashi/App-plmetrics"
       }
    },
-   "version" : "0.02"
+   "version" : "0.03"
 }
