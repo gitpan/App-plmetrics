@@ -29,7 +29,7 @@ plmetrics - show the Perl metrics
         --tar        URL of tar.gz
 
         --sort       sort result table
-        --result     kind of result(module*|methods|cc|lines) *default
+        --result     kind of result(module*|methods|cc|lines|files) *default
 
         --version    show the version
         -h --help    show this help

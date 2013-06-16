@@ -18,6 +18,7 @@ t/20_result_methods.t
 t/21_result_cc.t
 t/22_result_lines.t
 t/23_result_nothing.t
+t/24_result_file.t
 t/30_sort.t
 xt/01_perlcritic.t
 xt/02_pod-coverage.t

@@ -6,7 +6,15 @@ use Perl::Metrics::Lite;
 use Statistics::Swoop;
 use Text::ASCIITable;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
+
+my %VIEWER = (
+    qr/^modules?$/i => sub { $_[0]->_view_module($_[1]) },
+    qr/^methods?$/i => sub { $_[0]->_view_methods($_[1]) },
+    qr/^cc$/i       => sub { $_[0]->_view_cc_lines($_[1], 'cc') },
+    qr/^lines?$/i   => sub { $_[0]->_view_cc_lines($_[1], 'lines') },
+    qr/^files?$/i   => sub { $_[0]->_view_files($_[1]) },
+);
 
 sub new {
     my ($class, $opt) = @_;
@@ -19,60 +27,38 @@ sub run {
     my $self = shift;
 
     my ($targets, $base_path) = $self->_get_targets;
-    my $metrics = $self->_get_metrics($targets, $base_path);
-    $self->_stats($metrics);
+    my $stats = $self->_get_stats($targets, $base_path);
+    $self->_view($stats);
 }
 
-sub _stats {
-    my ($self, $metrics) = @_;
+sub _view {
+    my ($self, $stats) = @_;
 
-    my $result_opt = $self->opt->{'--result'};
+    my $result_opt = $self->opt->{'--result'} || 'module';
 
-    if (!$result_opt || $result_opt =~ m!^module$!i) {
-        $self->_stats_module($metrics);
+    for my $regex (keys %VIEWER) {
+        if ($result_opt =~ $regex) {
+            $VIEWER{$regex}->($self, $stats);
+            return;
+        }
     }
-    elsif ($result_opt =~ m!^methods?$!i) {
-        $self->_stats_methods($metrics);
-    }
-    elsif ($result_opt =~ m!^cc$!i) {
-        $self->_stats_cc($metrics);
-    }
-    elsif ($result_opt =~ m!^lines?$!i) {
-        $self->_stats_lines($metrics);
-    }
-    else {
-        print STDERR "wrong option: --result $result_opt\nsee the --help\n";
-    }
+    print STDERR "wrong option: --result $result_opt\nsee the --help\n";
 }
 
-sub _stats_cc {
-    my ($self, $metrics) = @_;
-
-    $self->_cc_lines($metrics, 'cc');
-}
-
-sub _stats_lines {
-    my ($self, $metrics) = @_;
-
-    $self->_cc_lines($metrics, 'lines');
-}
-
-sub _cc_lines {
-    my ($self, $metrics, $label) = @_;
+sub _view_cc_lines {
+    my ($self, $stats, $label) = @_;
 
     print "$label\n";
     my $t = Text::ASCIITable->new;
-    my @metrics_keys = keys %{$metrics};
+    my @metrics_keys = keys %{$stats};
     for my $pl ( $self->opt->{'--sort'} ? sort @metrics_keys : @metrics_keys ) {
         $t->setCols($self->_header);
-        $t->addRow( $pl, $self->_row($metrics->{$pl}{$label}) );
+        $t->addRow( $pl, $self->_row($stats->{$pl}{$label}) );
     }
     print $t. "\n";
 }
 
-sub _header {
-    return('', 'avg', 'max', 'min', 'range', 'sum', 'methods');
-}
+sub _header { ('', qw/avg max min range sum methods/) }
 
 sub _row {
     my ($self, $list) = @_;
@@ -82,32 +68,49 @@ sub _row {
                 $stats->range, $stats->sum, $stats->count );
 }
 
-sub _stats_module {
-    my ($self, $metrics) = @_;
+sub _view_module {
+    my ($self, $stats) = @_;
 
-    my @metrics_keys = keys %{$metrics};
+    my @metrics_keys = keys %{$stats};
     for my $pl ( $self->opt->{'--sort'} ? sort @metrics_keys : @metrics_keys ) {
         print "$pl\n";
         my $t = Text::ASCIITable->new;
         $t->setCols($self->_header);
-        $t->addRow( 'cc', $self->_row($metrics->{$pl}{cc}) );
-        $t->addRow( 'lines', $self->_row($metrics->{$pl}{lines}) );
+        $t->addRow( 'cc', $self->_row($stats->{$pl}{cc}) );
+        $t->addRow( 'lines', $self->_row($stats->{$pl}{lines}) );
         print $t. "\n";
     }
 }
 
-sub _round {
-    sprintf("%.2f", $_[1]);
+sub _view_files {
+    my ($self, $stats) = @_;
+
+    print "files\n";
+    my $t = Text::ASCIITable->new;
+    $t->setCols(qw/file lines methods packages/);
+    my @metrics_keys = keys %{$stats};
+    for my $pl ( $self->opt->{'--sort'} ? sort @metrics_keys : @metrics_keys ) {
+        $t->addRow(
+            $pl,
+            $stats->{$pl}{file_stats}{lines},
+            $stats->{$pl}{file_stats}{methods},
+            $stats->{$pl}{file_stats}{packages},
+        );
+    }
+    print $t. "\n";
 }
 
-sub _stats_methods {
-    my ($self, $metrics) = @_;
+sub _round { sprintf("%.2f", $_[1]) }
 
-    my @metrics_keys = keys %{$metrics};
+sub _view_methods {
+    my ($self, $stats) = @_;
+
+    my @metrics_keys = keys %{$stats};
     for my $pl ( $self->opt->{'--sort'} ? sort @metrics_keys : @metrics_keys ) {
+        print "$pl\n";
         my $t = Text::ASCIITable->new;
         $t->setCols('', 'cc', 'lines');
-        my $ref = $metrics->{$pl}{method};
+        my $ref = $stats->{$pl}{method};
         my @methods_keys = keys %{$ref};
         for my $method ( $self->opt->{'--sort'} ? sort @methods_keys : @methods_keys ) {
             $t->addRow($method, $ref->{$method}{cc}, $ref->{$method}{lines});
@@ -116,28 +119,51 @@ sub _stats_methods {
     }
 }
 
-sub _get_metrics {
+sub _get_stats {
     my ($self, $targets, $base_path) = @_;
 
     my $m = Perl::Metrics::Lite->new;
     my $analysis = $m->analyze_files(@{$targets});
 
-    my %subs;
+    my $stats = ( ($self->opt->{'--result'} || '') =~ m!^files?$!i )
+              ? $self->_get_file_stats($analysis, $base_path)
+              : $self->_get_sub_stats($analysis, $base_path);
+    return $stats;
+}
+
+sub _get_sub_stats {
+    my ($self, $analysis, $base_path) = @_;
+
+    my %stats;
     for my $full_path (keys %{($analysis->sub_stats)}) {
         for my $sub (@{$analysis->sub_stats->{$full_path}}) {
             $sub->{path} =~ s!$base_path/!! if $base_path;
             my $cc    = $sub->{mccabe_complexity};
             my $lines = $sub->{lines};
-            $subs{$sub->{path}}->{method}{$sub->{name}} = +{
+            $stats{$sub->{path}}->{method}{$sub->{name}} = +{
                 cc    => $cc,
                 lines => $lines,
             };
-            push @{ $subs{$sub->{path}}->{cc} }, $cc;
-            push @{ $subs{$sub->{path}}->{lines} }, $lines;
+            push @{ $stats{$sub->{path}}->{cc} }, $cc;
+            push @{ $stats{$sub->{path}}->{lines} }, $lines;
         }
     }
+    return \%stats;
+}
 
-    return \%subs;
+sub _get_file_stats {
+    my ($self, $analysis, $base_path) = @_;
+
+    my %stats;
+    for my $f (@{$analysis->file_stats}) {
+        $f->{path} =~ s!$base_path/!! if $base_path;
+        $stats{$f->{path}}->{file_stats} = +{
+            packages => $f->{main_stats}{packages},
+            lines    => $f->{main_stats}{lines},
+            methods  => $f->{main_stats}{number_of_methods},
+        };
+    }
+    return \%stats;
 }
 
 sub _get_targets {

@@ -1,5 +1,5 @@
 use Test::Perl::Metrics::Lite (
-    -mccabe_complexity => 12,
+    -mccabe_complexity => 10,
     -loc => 55,
     -except_dir  => [
     ],
